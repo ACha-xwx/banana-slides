@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Key, Image, Zap, Save, RotateCcw, Globe, FileText, Brain, ArrowUp } from 'lucide-react';
+import { Home, Image, Zap, Save, RotateCcw, Globe, FileText, Brain, ArrowUp } from 'lucide-react';
 import { useT } from '@/hooks/useT';
 
 // 组件内翻译
@@ -244,9 +244,6 @@ const LAZYLLM_VENDOR_SET = new Set(LAZYLLM_SOURCES.map(s => s.value));
 
 // 初始表单数据
 const initialFormData = {
-  ai_provider_format: 'gemini' as 'openai' | 'gemini' | 'lazyllm',
-  api_base_url: '',
-  api_key: '',
   text_model: '',
   image_model: '',
   image_caption_model: '',
@@ -290,39 +287,6 @@ export const Settings: React.FC = () => {
 
   // 配置驱动的表单区块定义（使用翻译）
   const settingsSections: SectionConfig[] = [
-    {
-      title: t('settings.sections.apiConfig'),
-      icon: <Key size={20} />,
-      fields: [
-        {
-          key: 'ai_provider_format',
-          label: t('settings.fields.aiProviderFormat'),
-          type: 'buttons',
-          description: t('settings.fields.aiProviderFormatDesc'),
-          options: [
-            { value: 'openai', label: t('settings.fields.openaiFormat') },
-            { value: 'gemini', label: t('settings.fields.geminiFormat') },
-            { value: 'lazyllm', label: t('settings.fields.lazyllmFormat') },
-          ],
-        },
-        {
-          key: 'api_base_url' as keyof typeof initialFormData,
-          label: t('settings.fields.apiBaseUrl'),
-          type: 'text' as FieldType,
-          placeholder: t('settings.fields.apiBaseUrlPlaceholder'),
-          description: t('settings.fields.apiBaseUrlDesc'),
-        },
-        {
-          key: 'api_key' as keyof typeof initialFormData,
-          label: t('settings.fields.apiKey'),
-          type: 'password' as FieldType,
-          placeholder: t('settings.fields.apiKeyPlaceholder'),
-          sensitiveField: true,
-          lengthKey: 'api_key_length' as keyof SettingsType,
-          description: t('settings.fields.apiKeyDesc'),
-        },
-      ],
-    },
     // Model config section is rendered separately (renderModelConfigSection) to support per-model provider UI
     {
       title: t('settings.sections.mineruConfig'),
@@ -466,9 +430,6 @@ export const Settings: React.FC = () => {
       if (response.data) {
         setSettings(response.data);
         setFormData({
-          ai_provider_format: response.data.ai_provider_format || 'gemini',
-          api_base_url: response.data.api_base_url || '',
-          api_key: '',
           image_resolution: response.data.image_resolution || '2K',
           max_description_workers: response.data.max_description_workers || 5,
           max_image_workers: response.data.max_image_workers || 8,
@@ -511,7 +472,7 @@ export const Settings: React.FC = () => {
     setIsSaving(true);
     try {
       const {
-        api_key, mineru_token, baidu_ocr_api_key, lazyllm_api_keys,
+        mineru_token, baidu_ocr_api_key, lazyllm_api_keys,
         text_api_key, image_api_key, image_caption_api_key,
         ...otherData
       } = formData;
@@ -520,7 +481,6 @@ export const Settings: React.FC = () => {
       };
 
       // Only send sensitive fields if user entered a new value
-      if (api_key) payload.api_key = api_key;
       if (mineru_token) payload.mineru_token = mineru_token;
       if (baidu_ocr_api_key) payload.baidu_ocr_api_key = baidu_ocr_api_key;
       if (text_api_key) payload.text_api_key = text_api_key;
@@ -543,7 +503,7 @@ export const Settings: React.FC = () => {
         // Clear all sensitive fields after save
         setFormData(prev => ({
           ...prev,
-          api_key: '', mineru_token: '', baidu_ocr_api_key: '',
+          mineru_token: '', baidu_ocr_api_key: '',
           lazyllm_api_keys: {},
           text_api_key: '', image_api_key: '', image_caption_api_key: '',
         }));
@@ -569,9 +529,6 @@ export const Settings: React.FC = () => {
           if (response.data) {
             setSettings(response.data);
             setFormData({
-              ai_provider_format: response.data.ai_provider_format || 'gemini',
-              api_base_url: response.data.api_base_url || '',
-              api_key: '',
               image_resolution: response.data.image_resolution || '2K',
               max_description_workers: response.data.max_description_workers || 5,
               max_image_workers: response.data.max_image_workers || 8,
@@ -637,9 +594,6 @@ export const Settings: React.FC = () => {
       const testSettings: any = {};
 
       // 只传递用户已填写的非空值
-      if (formData.api_key) testSettings.api_key = formData.api_key;
-      if (formData.api_base_url) testSettings.api_base_url = formData.api_base_url;
-      if (formData.ai_provider_format) testSettings.ai_provider_format = formData.ai_provider_format;
       if (formData.text_model) testSettings.text_model = formData.text_model;
       if (formData.image_model) testSettings.image_model = formData.image_model;
       if (formData.image_caption_model) testSettings.image_caption_model = formData.image_caption_model;
@@ -1008,48 +962,29 @@ export const Settings: React.FC = () => {
       <ToastContainer />
       {ConfirmDialog}
       <div className="space-y-8">
-        {/* 配置区块（配置驱动） */}
+        {/* 模型配置区块 - 最先渲染 */}
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-foreground-primary mb-4 flex items-center">
+            <FileText size={20} />
+            <span className="ml-2">{t('settings.sections.modelConfig')}</span>
+          </h2>
+          <div className="space-y-4">
+            {modelConfigItems.map(renderModelConfigGroup)}
+          </div>
+        </div>
+
+        {/* 其余配置区块（配置驱动） */}
         <div className="space-y-8">
-          {settingsSections.map((section, sectionIdx) => (
-            <React.Fragment key={section.title}>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-foreground-primary mb-4 flex items-center">
-                  {section.icon}
-                  <span className="ml-2">{section.title}</span>
-                </h2>
-                <div className="space-y-4">
-                  {section.fields.map((field) => renderField(field))}
-                  {section.title === t('settings.sections.apiConfig') && (
-                    <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
-                      <p className="text-sm text-gray-700 dark:text-foreground-secondary">
-                        {t('settings.apiKeyTip', { link: '' }).split('{{link}}')[0]}
-                        <a
-                          href="https://aihubmix.com/?aff=17EC"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 underline font-medium"
-                        >
-                          AIHubmix
-                        </a>
-                        {t('settings.apiKeyTip', { link: '' }).split('{{link}}')[1]}
-                      </p>
-                    </div>
-                  )}
-                </div>
+          {settingsSections.map((section) => (
+            <div key={section.title}>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-foreground-primary mb-4 flex items-center">
+                {section.icon}
+                <span className="ml-2">{section.title}</span>
+              </h2>
+              <div className="space-y-4">
+                {section.fields.map((field) => renderField(field))}
               </div>
-              {/* 模型配置区块 - 紧跟在 API 配置区块后面 */}
-              {sectionIdx === 0 && (
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-foreground-primary mb-4 flex items-center">
-                    <FileText size={20} />
-                    <span className="ml-2">{t('settings.sections.modelConfig')}</span>
-                  </h2>
-                  <div className="space-y-4">
-                    {modelConfigItems.map(renderModelConfigGroup)}
-                  </div>
-                </div>
-              )}
-            </React.Fragment>
+            </div>
           ))}
         </div>
 
