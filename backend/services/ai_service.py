@@ -254,7 +254,7 @@ class AIService:
     def _generate_json_fallback(self, prompt: str, thinking_budget: int) -> Union[Dict, List]:
         """文本生成 + JSON解析，解析失败自动重试"""
         response_text = self.text_provider.generate_text(prompt, thinking_budget=thinking_budget)
-        cleaned = response_text.strip().strip("```json").strip("```").strip()
+        cleaned = response_text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError as e:
