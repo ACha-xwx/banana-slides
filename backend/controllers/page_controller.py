@@ -460,6 +460,9 @@ def generate_page_image(project_id, page_id):
             'failed': 0
         })
         db.session.add(task)
+
+        # Update page status immediately so refresh shows correct state
+        page.status = 'GENERATING'
         db.session.commit()
         
         # Get app instance for background task

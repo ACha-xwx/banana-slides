@@ -806,8 +806,10 @@ def generate_images(project_id):
             selected_page_ids if selected_page_ids else None
         )
         
-        # Update project status
+        # Update project and page statuses immediately so refresh shows correct state
         project.status = 'GENERATING_IMAGES'
+        for p in pages:
+            p.status = 'GENERATING'
         db.session.commit()
         
         return success_response({
