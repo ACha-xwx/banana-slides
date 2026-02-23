@@ -63,7 +63,7 @@ const detailI18n = {
 import { Button, Loading, useToast, useConfirm, AiRefineInput, FilePreviewModal, ReferenceFileList } from '@/components/shared';
 import { DescriptionCard } from '@/components/preview/DescriptionCard';
 import { useProjectStore } from '@/store/useProjectStore';
-import { refineDescriptions, getTaskStatus, addPage } from '@/api/endpoints';
+import { refineDescriptions, getTaskStatus, addPage, getSettings, updateSettings } from '@/api/endpoints';
 import { exportProjectToMarkdown, parseMarkdownPages } from '@/utils/projectUtils';
 
 export const DetailEditor: React.FC = () => {
@@ -88,6 +88,20 @@ export const DetailEditor: React.FC = () => {
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const [isRenovationProcessing, setIsRenovationProcessing] = useState(false);
   const [renovationProgress, setRenovationProgress] = useState<{ total: number; completed: number } | null>(null);
+  const [layoutPresets, setLayoutPresets] = useState<string[]>([]);
+
+  // 获取排版预设
+  useEffect(() => {
+    getSettings().then(res => {
+      if (res.data?.layout_presets) setLayoutPresets(res.data.layout_presets);
+    }).catch(() => {});
+  }, []);
+
+  const handleAddLayoutPreset = useCallback(async (preset: string) => {
+    const updated = [...layoutPresets, preset];
+    setLayoutPresets(updated);
+    try { await updateSettings({ layout_presets: updated }); } catch { /* ignore */ }
+  }, [layoutPresets]);
 
   // PPT 翻新：异步任务轮询
   useEffect(() => {
@@ -530,6 +544,8 @@ export const DetailEditor: React.FC = () => {
                     onRegenerate={() => stableHandleRegeneratePage(pageId)}
                     isGenerating={pageIsGenerating || (pageId ? !!pageDescriptionGeneratingTasks[pageId] : false)}
                     isAiRefining={isAiRefining}
+                    layoutPresets={layoutPresets}
+                    onAddLayoutPreset={handleAddLayoutPreset}
                   />
                 );
               })
