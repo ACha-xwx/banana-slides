@@ -292,10 +292,14 @@ def get_project(project_id):
         result = project.to_dict(include_pages=True)
 
         # Include active image generation tasks so frontend can resume polling after refresh
+        # Skip tasks older than 30 min to avoid infinite polling after crashes
+        from datetime import timedelta
+        staleness_cutoff = datetime.utcnow() - timedelta(minutes=30)
         active_tasks = Task.query.filter(
             Task.project_id == project_id,
             Task.task_type.in_(['GENERATE_IMAGES', 'GENERATE_PAGE_IMAGE']),
-            Task.status.in_(['PENDING', 'PROCESSING'])
+            Task.status.in_(['PENDING', 'PROCESSING']),
+            Task.created_at > staleness_cutoff
         ).all()
         if active_tasks:
             result['active_image_tasks'] = [

@@ -328,7 +328,8 @@ def generate_images_task(task_id: str, project_id: str, ai_service, file_service
             # 注意：不在任务开始时获取模板路径，而是在每个子线程中动态获取
             # 这样可以确保即使用户在上传新模板后立即生成，也能使用最新模板
 
-            # Initialize progress (preserve page_ids set by controller)
+            # Initialize progress (preserve page_ids set by controller).
+            # Relies on SQLite WAL mode making the controller's commit visible here.
             existing = task.get_progress() or {}
             task.set_progress({
                 "total": len(pages),

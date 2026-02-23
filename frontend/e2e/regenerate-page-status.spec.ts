@@ -7,6 +7,9 @@ const FRONTEND_DIR = process.cwd().endsWith('frontend') ? process.cwd() : path.j
 const PROJECT_ROOT = path.resolve(FRONTEND_DIR, '..')
 const DB_PATH = path.join(PROJECT_ROOT, 'backend', 'instance', 'database.db')
 
+/** Escape a value for use inside SQL single-quoted strings */
+function esc(v: string): string { return v.replace(/'/g, "''") }
+
 function sql(query: string): string {
   return execSync(`sqlite3 -cmd ".timeout 5000" "${DB_PATH}" "${query.replace(/"/g, '\\"')}"`)
     .toString().trim()
@@ -25,8 +28,8 @@ test.describe('Regenerate active task detection (integration)', () => {
     const { projectId, pageIds } = await seedProjectWithImages(backend, 1)
     const pageId = pageIds[0]
 
-    sql(`UPDATE pages SET status='FAILED' WHERE id='${pageId}'`)
-    sql(`UPDATE projects SET template_style='minimalist modern' WHERE id='${projectId}'`)
+    sql(`UPDATE pages SET status='FAILED' WHERE id='${esc(pageId)}'`)
+    sql(`UPDATE projects SET template_style='minimalist modern' WHERE id='${esc(projectId)}'`)
 
     const resp = await (await fetch(`${backend}/api/projects/${projectId}/generate/images`, {
       method: 'POST',
@@ -38,7 +41,7 @@ test.describe('Regenerate active task detection (integration)', () => {
     expect(taskId).toBeTruthy()
 
     // Verify page_ids stored in task progress (regardless of task completion speed)
-    const progress = JSON.parse(sql(`SELECT progress FROM tasks WHERE id='${taskId}'`))
+    const progress = JSON.parse(sql(`SELECT progress FROM tasks WHERE id='${esc(taskId)}'`))
     expect(progress.page_ids).toContain(pageId)
   })
 
@@ -48,8 +51,8 @@ test.describe('Regenerate active task detection (integration)', () => {
     const pageId = pageIds[0]
 
     const desc = JSON.stringify({ text: 'Test content.' }).replace(/'/g, "''")
-    sql(`UPDATE pages SET status='FAILED', description_content='${desc}' WHERE id='${pageId}'`)
-    sql(`UPDATE projects SET template_style='minimalist modern' WHERE id='${projectId}'`)
+    sql(`UPDATE pages SET status='FAILED', description_content='${desc}' WHERE id='${esc(pageId)}'`)
+    sql(`UPDATE projects SET template_style='minimalist modern' WHERE id='${esc(projectId)}'`)
 
     const resp = await (await fetch(`${backend}/api/projects/${projectId}/pages/${pageId}/generate/image`, {
       method: 'POST',
@@ -60,7 +63,7 @@ test.describe('Regenerate active task detection (integration)', () => {
     const taskId = resp.data?.task_id
     expect(taskId).toBeTruthy()
 
-    const progress = JSON.parse(sql(`SELECT progress FROM tasks WHERE id='${taskId}'`))
+    const progress = JSON.parse(sql(`SELECT progress FROM tasks WHERE id='${esc(taskId)}'`))
     expect(progress.page_ids).toContain(pageId)
   })
 
@@ -72,7 +75,7 @@ test.describe('Regenerate active task detection (integration)', () => {
     // Manually insert a PENDING task to simulate an in-progress generation
     const taskId = 'test-active-task-' + Date.now()
     const progress = JSON.stringify({ total: 1, completed: 0, failed: 0, page_ids: [pageId] }).replace(/'/g, "''")
-    sql(`INSERT INTO tasks (id, project_id, task_type, status, progress, created_at) VALUES ('${taskId}', '${projectId}', 'GENERATE_IMAGES', 'PENDING', '${progress}', datetime('now'))`)
+    sql(`INSERT INTO tasks (id, project_id, task_type, status, progress, created_at) VALUES ('${esc(taskId)}', '${esc(projectId)}', 'GENERATE_IMAGES', 'PENDING', '${progress}', datetime('now'))`)
 
     const resp = await (await fetch(`${backend}/api/projects/${projectId}`)).json()
     const tasks = resp.data.active_image_tasks
@@ -80,7 +83,7 @@ test.describe('Regenerate active task detection (integration)', () => {
     expect(tasks.some((t: any) => t.task_id === taskId && t.page_ids.includes(pageId))).toBe(true)
 
     // Cleanup
-    sql(`DELETE FROM tasks WHERE id='${taskId}'`)
+    sql(`DELETE FROM tasks WHERE id='${esc(taskId)}'`)
   })
 })
 
