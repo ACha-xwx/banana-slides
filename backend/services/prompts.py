@@ -3,6 +3,7 @@ AI Service Prompts - 集中管理所有 AI 服务的 prompt 模板
 """
 import json
 import logging
+import re
 from textwrap import dedent
 from typing import List, Dict, Optional, TYPE_CHECKING
 
@@ -23,9 +24,9 @@ def get_description_format_template(is_cover_page=False):
     return (
         "页面标题：[标题]\n\n"
         "页面文字：\n- [要点1，15-25字]\n- [要点2]\n\n"
-        "配图建议：[描述该页适合的配图内容、风格和氛围，用于后续AI生图]\n\n"
+        "配图建议：[描述该页适合的配图内容、风格和氛围，用于后续AI生图；如有参考图片请以markdown图片链接放在此处]\n\n"
         '排版建议：[如"左图右文"、"全图背景+文字叠加"、"上下分栏"、"纯文字居中"等]\n\n'
-        "其他页面素材（如果有markdown图片链接、公式、表格等）"
+        "其他页面素材（如果有公式、表格等）"
     )
 
 
@@ -38,7 +39,8 @@ def get_description_format_example():
         "- 依赖性强：生活完全依赖自然资源的直接供给\n"
         "- 适应而非改造：通过观察学习自然，发展生存技能\n"
         "- 影响特点：局部、短期、低强度，生态可自我恢复\n\n"
-        "配图建议：一张原始人类在森林中采集果实的场景插画，自然色调，温暖柔和的光线\n\n"
+        "配图建议：一张原始人类在森林中采集果实的场景插画，自然色调，温暖柔和的光线\n"
+        "![参考图](/files/mineru/xxx/image.png)\n\n"
         "排版建议：左图右文\n\n"
         "其他页面素材"
     )
@@ -303,7 +305,7 @@ def get_page_description_prompt(project_context: 'ProjectContext', outline: list
 输出格式示例：
 {get_description_format_example()}
 
-【关于图片】如果参考文件中包含以 /files/ 开头的本地文件URL图片（例如 /files/mineru/xxx/image.png），请将这些图片以markdown格式输出，例如：![图片描述](/files/mineru/xxx/image.png)。这些图片会被包含在PPT页面中。
+【关于图片】如果参考文件中包含以 /files/ 开头的本地文件URL图片（例如 /files/mineru/xxx/image.png），请将这些图片以markdown格式放在"配图建议"段落中，例如：![图片描述](/files/mineru/xxx/image.png)。这些图片会被包含在PPT页面中。
 
 {get_language_instruction(language)}
 """)
@@ -390,10 +392,8 @@ def get_image_edit_prompt(edit_instruction: str, original_description: str = Non
         格式化后的 prompt 字符串
     """
     if original_description:
-        # 删除"其他页面素材"之后的内容，避免被前面的图影响
-        materials_marker = DESCRIPTION_SECTIONS[-1]  # "其他页面素材"
-        if materials_marker in original_description:
-            original_description = original_description.split(materials_marker)[0].strip()
+        # 删除 markdown 图片链接，避免参考图影响生图
+        original_description = re.sub(r'!\[.*?\]\(.*?\)\s*', '', original_description).strip()
         
         prompt = (f"""\
 该PPT页面的原始页面描述为：
@@ -700,7 +700,7 @@ You are a helpful assistant that modifies PPT page descriptions based on user re
 
 {get_description_format_template()}
 
-提示：如果参考文件中包含以 /files/ 开头的本地文件URL图片，请以markdown格式输出，例如：![图片描述](/files/mineru/xxx/image.png)。
+提示：如果参考文件中包含以 /files/ 开头的本地文件URL图片，请以markdown格式放在"配图建议"段落中，例如：![图片描述](/files/mineru/xxx/image.png)。
 
 请返回一个 JSON 数组，每个元素是一个字符串，对应每个页面的修改后描述（按页面顺序）。只输出 JSON 数组，不要包含其他文字。
 {get_language_instruction(language)}
