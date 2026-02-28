@@ -639,35 +639,7 @@ banana-slides/
 <details> 
 <summary> 详情 </summary>
 需要商业许可证（Commercial License）（例如：希望闭源使用、私有化部署交付、将本项目集成进闭源产品，或在不公开对应源代码的前提下提供服务），请联系作者：anionex@qq.com
-- 联系方式：anionex@qq.com
 </details>
-
-
-
-<h2>🚀 Sponsor / 赞助 </h2>
-<br>
-<div align="center">
-<a href="https://aihubmix.com/?aff=17EC">
-  <img src="./assets/logo_aihubmix.png" alt="AIHubMix" style="height:48px;">
-</a>
-<p>感谢AIHubMix对本项目的赞助</p>
-</div>
-
-
-<div align="center">
-
- <br>
-
-<a href="https://api.chatfire.site/login?inviteCode=A15CD6A0"><img width="200" alt="image" src="https://github.com/user-attachments/assets/d6bd255f-ba2c-4ea3-bd90-fef292fc3397" />
-</a>
-
-
-<details>
-  <summary>感谢<a href="https://api.chatfire.site/login?inviteCode=A15CD6A0">AI火宝</a>对本项目的赞助</summary>
-  “聚合全球多模型API服务商。更低价格享受安全、稳定且72小时链接全球最新模型的服务。”
-</details>
- 
-</div>
 
 
 
@@ -679,7 +651,26 @@ banana-slides/
 
 - [Linux.do](https://linux.do/): 新的理想型社区
   
-## 赞赏
+## 🚀 赞助与赞赏
+
+<div align="center">
+<a href="https://aihubmix.com/?aff=17EC">
+  <img src="./assets/logo_aihubmix.png" alt="AIHubMix" style="height:48px;">
+</a>
+<p>感谢AIHubMix对本项目的赞助</p>
+</div>
+
+<div align="center">
+
+<a href="https://api.chatfire.site/login?inviteCode=A15CD6A0"><img width="200" alt="image" src="https://github.com/user-attachments/assets/d6bd255f-ba2c-4ea3-bd90-fef292fc3397" />
+</a>
+
+<details>
+  <summary>感谢<a href="https://api.chatfire.site/login?inviteCode=A15CD6A0">AI火宝</a>对本项目的赞助</summary>
+  "聚合全球多模型API服务商。更低价格享受安全、稳定且72小时链接全球最新模型的服务。"
+</details>
+
+</div>
 
 开源不易🙏如果本项目对你有价值，欢迎请开发者喝杯咖啡☕️
 
