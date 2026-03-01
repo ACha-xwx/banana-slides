@@ -186,6 +186,8 @@ interface FieldConfig {
   options?: { value: string; label: string }[];  // select 类型的选项
   min?: number;
   max?: number;
+  locked?: boolean;  // Demo 模式下锁定字段
+  lockedValue?: string;  // 锁定时的固定值
 }
 
 interface SectionConfig {
@@ -205,11 +207,11 @@ interface ServiceTestState {
 // 初始表单数据
 const initialFormData = {
   ai_provider_format: 'gemini' as string,
-  api_base_url: '',
+  api_base_url: 'https://aihubmix.com/gemini',
   api_key: '',
-  text_model: '',
-  image_model: '',
-  image_caption_model: '',
+  text_model: 'gemini-3-pro-image-preview',
+  image_model: 'gemini-3-pro-image-preview',
+  image_caption_model: 'gemini-3-pro-image-preview',
   mineru_api_base: '',
   mineru_token: '',
   image_resolution: '2K',
@@ -240,9 +242,10 @@ export const Settings: React.FC = () => {
           type: 'buttons',
           description: t('settings.fields.aiProviderFormatDesc'),
           options: [
-            { value: 'openai', label: t('settings.fields.openaiFormat') },
             { value: 'gemini', label: t('settings.fields.geminiFormat') },
           ],
+          locked: true,
+          lockedValue: 'gemini',
         },
         {
           key: 'api_base_url',
@@ -250,6 +253,8 @@ export const Settings: React.FC = () => {
           type: 'text',
           placeholder: t('settings.fields.apiBaseUrlPlaceholder'),
           description: t('settings.fields.apiBaseUrlDesc'),
+          locked: true,
+          lockedValue: 'https://aihubmix.com/gemini',
         },
         {
           key: 'api_key',
@@ -272,6 +277,8 @@ export const Settings: React.FC = () => {
           type: 'text',
           placeholder: t('settings.fields.textModelPlaceholder'),
           description: t('settings.fields.textModelDesc'),
+          locked: true,
+          lockedValue: 'gemini-3-pro-image-preview',
         },
         {
           key: 'image_model',
@@ -279,6 +286,8 @@ export const Settings: React.FC = () => {
           type: 'text',
           placeholder: t('settings.fields.imageModelPlaceholder'),
           description: t('settings.fields.imageModelDesc'),
+          locked: true,
+          lockedValue: 'gemini-3-pro-image-preview',
         },
         {
           key: 'image_caption_model',
@@ -286,6 +295,8 @@ export const Settings: React.FC = () => {
           type: 'text',
           placeholder: t('settings.fields.imageCaptionModelPlaceholder'),
           description: t('settings.fields.imageCaptionModelDesc'),
+          locked: true,
+          lockedValue: 'gemini-3-pro-image-preview',
         },
       ],
     },
@@ -439,18 +450,18 @@ export const Settings: React.FC = () => {
       if (response.data) {
         setSettings(response.data);
         setFormData({
-          ai_provider_format: response.data.ai_provider_format || 'gemini',
-          api_base_url: response.data.api_base_url || '',
+          ai_provider_format: 'gemini',
+          api_base_url: 'https://aihubmix.com/gemini',
           api_key: '',
           image_resolution: response.data.image_resolution || '2K',
           image_aspect_ratio: response.data.image_aspect_ratio || '16:9',
           max_description_workers: response.data.max_description_workers || 5,
           max_image_workers: response.data.max_image_workers || 8,
-          text_model: response.data.text_model || '',
-          image_model: response.data.image_model || '',
+          text_model: 'gemini-3-pro-image-preview',
+          image_model: 'gemini-3-pro-image-preview',
           mineru_api_base: response.data.mineru_api_base || '',
           mineru_token: '',
-          image_caption_model: response.data.image_caption_model || '',
+          image_caption_model: 'gemini-3-pro-image-preview',
           output_language: response.data.output_language || 'zh',
           enable_text_reasoning: response.data.enable_text_reasoning || false,
           text_thinking_budget: response.data.text_thinking_budget || 1024,
@@ -518,16 +529,18 @@ export const Settings: React.FC = () => {
           if (response.data) {
             setSettings(response.data);
             setFormData({
+              ai_provider_format: 'gemini',
+              api_base_url: 'https://aihubmix.com/gemini',
               api_key: '',
               image_resolution: response.data.image_resolution || '2K',
               image_aspect_ratio: response.data.image_aspect_ratio || '16:9',
               max_description_workers: response.data.max_description_workers || 5,
               max_image_workers: response.data.max_image_workers || 8,
-              text_model: response.data.text_model || '',
-              image_model: response.data.image_model || '',
+              text_model: 'gemini-3-pro-image-preview',
+              image_model: 'gemini-3-pro-image-preview',
               mineru_api_base: response.data.mineru_api_base || '',
               mineru_token: '',
-              image_caption_model: response.data.image_caption_model || '',
+              image_caption_model: 'gemini-3-pro-image-preview',
               output_language: response.data.output_language || 'zh',
               enable_text_reasoning: response.data.enable_text_reasoning || false,
               text_thinking_budget: response.data.text_thinking_budget || 1024,
@@ -646,7 +659,7 @@ export const Settings: React.FC = () => {
   };
 
   const renderField = (field: FieldConfig) => {
-    const value = formData[field.key];
+    const value = field.locked && field.lockedValue !== undefined ? field.lockedValue : formData[field.key];
 
     if (field.type === 'buttons' && field.options) {
       return (
@@ -659,7 +672,8 @@ export const Settings: React.FC = () => {
               <button
                 key={option.value}
                 type="button"
-                onClick={() => handleFieldChange(field.key, option.value)}
+                disabled={field.locked}
+                onClick={() => !field.locked && handleFieldChange(field.key, option.value)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   value === option.value
                     ? option.value === 'openai'
@@ -738,8 +752,8 @@ export const Settings: React.FC = () => {
       ? t('settings.fields.apiKeySet', { length: settings[field.lengthKey] })
       : field.placeholder || '';
 
-    // 判断是否禁用（思考负载字段在对应开关关闭时禁用）
-    let isDisabled = false;
+    // 判断是否禁用（锁定字段或思考负载字段在对应开关关闭时禁用）
+    let isDisabled = !!field.locked;
     if (field.key === 'text_thinking_budget') {
       isDisabled = !formData.enable_text_reasoning;
     } else if (field.key === 'image_thinking_budget') {
