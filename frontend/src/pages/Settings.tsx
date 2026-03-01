@@ -250,9 +250,7 @@ export const Settings: React.FC = () => {
         {
           key: 'api_base_url',
           label: t('settings.fields.apiBaseUrl'),
-          type: 'text',
-          placeholder: t('settings.fields.apiBaseUrlPlaceholder'),
-          description: t('settings.fields.apiBaseUrlDesc'),
+          type: 'hidden',
           locked: true,
           lockedValue: 'https://aihubmix.com/gemini',
         },
@@ -657,6 +655,7 @@ export const Settings: React.FC = () => {
   };
 
   const renderField = (field: FieldConfig) => {
+    if (field.type === 'hidden') return null;
     const value = field.locked && field.lockedValue !== undefined ? field.lockedValue : formData[field.key];
 
     if (field.type === 'buttons' && field.options) {
