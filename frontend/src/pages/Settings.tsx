@@ -813,11 +813,24 @@ export const Settings: React.FC = () => {
                     <ol className="text-sm text-gray-700 dark:text-foreground-secondary space-y-1 list-decimal list-inside ml-1">
                       <li>
                         {t('settings.apiKeyHelp.step1', { link: '{{link}}' }).split('{{link}}')[0]}
-                        <span
-                          onClick={() => { const u = ['https://', 'aihubmix', '.com/?', 'aff=17EC'].join(''); window.open(u, '_blank', 'noopener,noreferrer'); }}
-                          className="text-blue-600 hover:text-blue-800 underline font-medium cursor-pointer"
-                        >
-                          点击此处访问 AIHubmix →
+                        <span className="inline-flex items-center gap-2">
+                          <a
+                            href={['https://', 'aihubmix', '.com/?', 'aff=17EC'].join('')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline font-medium"
+                          >
+                            点击此处访问 AIHubmix →
+                          </a>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText('https://aihubmix.com/?aff=17EC');
+                              show({ message: '链接已复制到剪贴板', type: 'success' });
+                            }}
+                            className="text-xs px-2 py-0.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded transition-colors"
+                          >
+                            复制链接
+                          </button>
                         </span>
                         {t('settings.apiKeyHelp.step1', { link: '{{link}}' }).split('{{link}}')[1]}
                       </li>
