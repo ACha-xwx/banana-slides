@@ -222,7 +222,7 @@ cp .env.example .env
 ```
 
 编辑 `.env` 文件，配置必要的环境变量：
-> **项目中大模型接口以AIHubMix平台格式为标准，推荐使用 [AIHubMix](https://aihubmix.com/?aff=17EC) 获取API密钥，减小迁移成本**<br>
+> **项目中大模型接口以AIHubMix平台格式为标准，推荐使用 [AIHubMix(点击此处直接访问)](https://aihubmix.com/?aff=17EC) 获取API密钥，减小迁移成本**<br>
 > **友情提示：谷歌nano banana pro模型接口费用较高，请注意调用成本**
 ```env
 # AI Provider格式配置 (gemini / openai / vertex)
