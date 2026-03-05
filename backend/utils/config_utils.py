@@ -35,6 +35,7 @@ _CONFIG_KEY_TO_SETTINGS_ATTR = {
     'TEXT_THINKING_BUDGET': 'text_thinking_budget',
     'ENABLE_IMAGE_REASONING': 'enable_image_reasoning',
     'IMAGE_THINKING_BUDGET': 'image_thinking_budget',
+    'BAIDU_API_KEY': 'baidu_ocr_api_key',
     'BAIDU_OCR_API_KEY': 'baidu_ocr_api_key',
 }
 
