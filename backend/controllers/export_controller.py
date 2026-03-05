@@ -278,6 +278,8 @@ def export_editable_pptx(project_id):
         user_config = {
             'MINERU_TOKEN': get_user_config('MINERU_TOKEN'),
             'MINERU_API_BASE': get_user_config('MINERU_API_BASE'),
+            'BAIDU_API_KEY': get_user_config('BAIDU_API_KEY'),
+            'BAIDU_OCR_API_KEY': get_user_config('BAIDU_OCR_API_KEY'),
         }
 
         # 使用递归分析任务（不需要 ai_service，使用 ImageEditabilityService）

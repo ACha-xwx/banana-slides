@@ -1095,6 +1095,13 @@ class ExportService:
                     service_kwargs['mineru_token'] = user_config['MINERU_TOKEN']
                 if user_config.get('MINERU_API_BASE'):
                     service_kwargs['mineru_api_base'] = user_config['MINERU_API_BASE']
+                # 百度相关配置（用于百度OCR和百度图像修复）
+                if user_config.get('BAIDU_API_KEY'):
+                    import os
+                    os.environ['BAIDU_API_KEY'] = user_config['BAIDU_API_KEY']
+                if user_config.get('BAIDU_OCR_API_KEY'):
+                    import os
+                    os.environ['BAIDU_OCR_API_KEY'] = user_config['BAIDU_OCR_API_KEY']
             config = ServiceConfig.from_defaults(**service_kwargs)
             editability_service = ImageEditabilityService(config)
             
