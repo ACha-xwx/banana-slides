@@ -272,6 +272,7 @@ export const Home: React.FC = () => {
   });
 
   const handleMaterialSelect = useCallback(async (materials: Material[]) => {
+    alert(`handleMaterialSelect called with ${materials.length} materials`);
     try {
       console.log('[Home] handleMaterialSelect called with', materials.length, 'materials');
       const { materialsToMarkdownWithCaption } = await import('@/utils/markdown');
