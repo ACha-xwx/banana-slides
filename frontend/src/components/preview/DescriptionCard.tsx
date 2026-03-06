@@ -87,17 +87,34 @@ export const DescriptionCard: React.FC<DescriptionCardProps> = React.memo(({
 
   const handleMaterialSelect = useCallback(async (materials: Material[]) => {
     try {
-      console.log('[DescriptionCard] handleMaterialSelect called with', materials.length, 'materials');
-      const { materialsToMarkdownWithCaption } = await import('@/utils/markdown');
-      const markdown = await materialsToMarkdownWithCaption(materials);
-      console.log('[DescriptionCard] Generated markdown:', markdown);
-      textareaRef.current?.insertAtCursor(markdown + '\n');
-      console.log('[DescriptionCard] Inserted markdown into textarea');
+      const { getImageUrl } = await import('@/api/client');
+      const { getMaterialCaption } = await import('@/api/endpoints');
+
+      // 立即插入占位符
+      const placeholders = materials.map(m => {
+        const filename = m.original_filename || m.filename || 'image';
+        return { material: m, placeholder: `![${filename}](${getImageUrl(m.url)})` };
+      });
+
+      const placeholderText = placeholders.map(p => p.placeholder).join('\n');
+      textareaRef.current?.insertAtCursor(placeholderText + '\n');
+
+      // 后台生成 caption 并替换
+      placeholders.forEach(async ({ material, placeholder }) => {
+        try {
+          const response = await getMaterialCaption(material.id);
+          const caption = response.data?.caption || material.original_filename || material.filename || 'image';
+          const finalMarkdown = `![${caption}](${getImageUrl(material.url)})`;
+          setEditContent(prev => prev.replace(placeholder, finalMarkdown));
+        } catch (error) {
+          console.error('[DescriptionCard] Failed to generate caption for', material.id, error);
+        }
+      });
     } catch (error) {
       console.error('[DescriptionCard] Error in handleMaterialSelect:', error);
       showToast({ message: t('descriptionCard.uploadingImage'), type: 'error' });
     }
-  }, [showToast, t]);
+  }, [showToast, t, setEditContent]);
 
   // 通过 page.status 驱动骨架屏，与图片生成的 GENERATING 状态互不干扰
   const generating = useDescriptionGeneratingState(page, isAiRefining);
