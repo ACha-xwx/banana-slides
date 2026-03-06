@@ -276,26 +276,34 @@ export const Home: React.FC = () => {
       const { getImageUrl } = await import('@/api/client');
       const { getMaterialCaption } = await import('@/api/endpoints');
 
-      // 立即插入占位符（使用文件名）
+      // 立即插入占位符（使用 uploading: 前缀显示 loading 状态）
       const placeholders = materials.map(m => {
         const filename = m.original_filename || m.filename || 'image';
-        return { material: m, placeholder: `![${filename}](${getImageUrl(m.url)})` };
+        const realUrl = getImageUrl(m.url);
+        return {
+          material: m,
+          placeholder: `![${filename}](uploading:${realUrl})`,
+          realUrl
+        };
       });
 
       const placeholderText = placeholders.map(p => p.placeholder).join('\n');
       textareaRef.current?.insertAtCursor(placeholderText + '\n');
 
       // 后台异步生成 caption 并替换
-      placeholders.forEach(async ({ material, placeholder }) => {
+      await Promise.all(placeholders.map(async ({ material, placeholder, realUrl }) => {
         try {
           const response = await getMaterialCaption(material.id);
           const caption = response.data?.caption || material.original_filename || material.filename || 'image';
-          const finalMarkdown = `![${caption}](${getImageUrl(material.url)})`;
+          const finalMarkdown = `![${caption}](${realUrl})`;
           setContent(prev => prev.replace(placeholder, finalMarkdown));
         } catch (error) {
           console.error('[Home] Failed to generate caption for', material.id, error);
+          // 失败时移除 uploading: 前缀
+          const fallbackMarkdown = `![${material.original_filename || material.filename || 'image'}](${realUrl})`;
+          setContent(prev => prev.replace(placeholder, fallbackMarkdown));
         }
-      });
+      }));
     } catch (error) {
       console.error('[Home] Error in handleMaterialSelect:', error);
       show({ message: '插入素材失败', type: 'error' });
