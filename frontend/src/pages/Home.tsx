@@ -275,6 +275,7 @@ export const Home: React.FC = () => {
     try {
       const { getImageUrl } = await import('@/api/client');
       const { getMaterialCaption } = await import('@/api/endpoints');
+      const { escapeMarkdown } = await import('@/hooks/useImagePaste');
 
       // 立即插入占位符（使用 uploading: 前缀显示 loading 状态）
       const placeholders = materials.map(m => {
@@ -294,13 +295,15 @@ export const Home: React.FC = () => {
       await Promise.all(placeholders.map(async ({ material, placeholder, realUrl }) => {
         try {
           const response = await getMaterialCaption(material.id);
-          const caption = response.data?.caption || material.original_filename || material.filename || 'image';
+          const rawCaption = response.data?.caption || material.original_filename || material.filename || 'image';
+          const caption = escapeMarkdown(rawCaption);
           const finalMarkdown = `![${caption}](${realUrl})`;
           setContent(prev => prev.replace(placeholder, finalMarkdown));
         } catch (error) {
           console.error('[Home] Failed to generate caption for', material.id, error);
           // 失败时移除 uploading: 前缀
-          const fallbackMarkdown = `![${material.original_filename || material.filename || 'image'}](${realUrl})`;
+          const fallback = escapeMarkdown(material.original_filename || material.filename || 'image');
+          const fallbackMarkdown = `![${fallback}](${realUrl})`;
           setContent(prev => prev.replace(placeholder, fallbackMarkdown));
         }
       }));

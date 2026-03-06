@@ -17,7 +17,7 @@ export const getUploadingPreviewUrl = (url: string) =>
   isUploadingUrl(url) ? url.slice(UPLOADING_PREFIX.length) : url;
 
 /** Escape markdown special characters in alt text to prevent injection */
-const escapeMarkdown = (text: string): string => {
+export const escapeMarkdown = (text: string): string => {
   return text.replace(/[[\]()]/g, '\\$&');
 };
 

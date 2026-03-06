@@ -114,6 +114,7 @@ export const DescriptionCard: React.FC<DescriptionCardProps> = React.memo(({
     try {
       const { getImageUrl } = await import('@/api/client');
       const { getMaterialCaption } = await import('@/api/endpoints');
+      const { escapeMarkdown } = await import('@/hooks/useImagePaste');
 
       // 立即插入占位符（使用 uploading: 前缀显示 loading 状态）
       const placeholders = materials.map(m => {
@@ -130,18 +131,20 @@ export const DescriptionCard: React.FC<DescriptionCardProps> = React.memo(({
       activeInsertAtCursor.current?.(placeholderText + '\n');
 
       // 后台生成 caption 并替换
-      placeholders.forEach(async ({ material, placeholder, realUrl }) => {
+      await Promise.all(placeholders.map(async ({ material, placeholder, realUrl }) => {
         try {
           const response = await getMaterialCaption(material.id);
-          const caption = response.data?.caption || material.original_filename || material.filename || 'image';
+          const rawCaption = response.data?.caption || material.original_filename || material.filename || 'image';
+          const caption = escapeMarkdown(rawCaption);
           const finalMarkdown = `![${caption}](${realUrl})`;
           activeSetContent.current(prev => prev.replace(placeholder, finalMarkdown));
         } catch (error) {
           console.error('[DescriptionCard] Failed to generate caption for', material.id, error);
-          const fallbackMarkdown = `![${material.original_filename || material.filename || 'image'}](${realUrl})`;
+          const fallback = escapeMarkdown(material.original_filename || material.filename || 'image');
+          const fallbackMarkdown = `![${fallback}](${realUrl})`;
           activeSetContent.current(prev => prev.replace(placeholder, fallbackMarkdown));
         }
-      });
+      }));
     } catch (error) {
       console.error('[DescriptionCard] Error in handleMaterialSelect:', error);
       showToast({ message: t('descriptionCard.uploadingImage'), type: 'error' });
