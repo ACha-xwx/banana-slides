@@ -281,9 +281,9 @@ export const Home: React.FC = () => {
       console.log('[Home] Inserted markdown into textarea');
     } catch (error) {
       console.error('[Home] Error in handleMaterialSelect:', error);
-      showToast({ message: '插入素材失败', type: 'error' });
+      show({ message: '插入素材失败', type: 'error' });
     }
-  }, [showToast]);
+  }, [show]);
 
   // 检测粘贴事件，图片走 hook，文档走独立逻辑
   const handlePaste = async (e: React.ClipboardEvent<HTMLElement>) => {
