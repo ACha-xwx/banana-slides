@@ -7,6 +7,7 @@ import { Modal } from './Modal';
 import { listMaterials, uploadMaterial, listProjects, deleteMaterial, downloadMaterialsZip, type Material } from '@/api/endpoints';
 import type { Project } from '@/types';
 import { getImageUrl } from '@/api/client';
+import { getProjectTitleTruncated } from '@/utils/projectUtils';
 
 // ---------------------------------------------------------------------------
 // i18n
@@ -184,8 +185,7 @@ const displayName = (m: Material) =>
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'];
 
 const projectLabel = (p: Project) => {
-  const raw = p.idea_prompt || p.outline_text || `Project ${p.project_id.slice(0, 8)}`;
-  return raw.length > 20 ? `${raw.slice(0, 20)}…` : raw;
+  return getProjectTitleTruncated(p, 30);
 };
 
 // ---------------------------------------------------------------------------
