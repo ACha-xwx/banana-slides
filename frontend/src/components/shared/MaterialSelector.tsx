@@ -114,7 +114,6 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
     m.url;
 
   const loadMaterials = async () => {
-    setIsLoading(true);
     try {
       const targetProjectId = filterProjectId === 'all' ? 'all' : filterProjectId === 'none' ? 'none' : filterProjectId;
       const response = await listMaterials(targetProjectId);
@@ -127,8 +126,6 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
         message: error?.response?.data?.error?.message || error.message || t('material.messages.loadMaterialFailed'),
         type: 'error',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -309,17 +306,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                   )
                 )}
               </select>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={<RefreshCw size={16} />}
-                onClick={loadMaterials}
-                disabled={isLoading}
-              >
-                {t('common.refresh')}
-              </Button>
-              
+
               <label className="inline-block cursor-pointer">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-foreground-secondary bg-white dark:bg-background-secondary border border-gray-300 dark:border-border-primary rounded-md hover:bg-gray-50 dark:hover:bg-background-hover disabled:opacity-50 disabled:cursor-not-allowed">
                   <Upload size={16} />
