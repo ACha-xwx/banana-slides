@@ -80,14 +80,17 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
   const [showAllProjects, setShowAllProjects] = useState(false);
 
   useEffect(() => {
+    if (isOpen && !projectsLoaded) {
+      loadProjects();
+    }
+  }, [isOpen, projectsLoaded]);
+
+  useEffect(() => {
     if (isOpen) {
-      if (!projectsLoaded) {
-        loadProjects();
-      }
       loadMaterials();
       setShowAllProjects(false);
     }
-  }, [isOpen, filterProjectId, projectsLoaded]);
+  }, [isOpen, filterProjectId]);
 
   const loadProjects = async () => {
     try {

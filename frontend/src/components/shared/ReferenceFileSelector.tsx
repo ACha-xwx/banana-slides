@@ -174,14 +174,17 @@ export const ReferenceFileSelector: React.FC<ReferenceFileSelectorProps> = React
   };
 
   useEffect(() => {
+    if (isOpen && !projectsLoaded) {
+      loadProjects();
+    }
+  }, [isOpen, projectsLoaded]);
+
+  useEffect(() => {
     if (isOpen) {
-      if (!projectsLoaded) {
-        loadProjects();
-      }
       loadFiles();
       setSelectedFiles(new Set(initialSelectedIdsRef.current));
     }
-  }, [isOpen, filterProjectId, loadFiles, projectsLoaded]);
+  }, [isOpen, filterProjectId, loadFiles]);
 
   // 轮询解析状态
   useEffect(() => {
