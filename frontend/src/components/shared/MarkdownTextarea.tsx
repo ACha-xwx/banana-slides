@@ -711,7 +711,9 @@ export const MarkdownTextarea = forwardRef<MarkdownTextareaRef, MarkdownTextarea
                     </svg>
                   </button>
                   {showUploadMenu && (
-                    <div className="absolute bottom-full left-0 mb-1 py-1 bg-white dark:bg-background-secondary border border-gray-200 dark:border-border-primary rounded-lg shadow-lg z-30 min-w-[160px]">
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setShowUploadMenu(false)} />
+                      <div className="absolute bottom-full left-0 mb-1 py-1 bg-white dark:bg-background-secondary border border-gray-200 dark:border-border-primary rounded-lg shadow-lg z-40 min-w-[160px]">
                       <button
                         type="button"
                         className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-foreground-secondary hover:bg-gray-100 dark:hover:bg-background-hover flex items-center gap-2"
@@ -739,6 +741,7 @@ export const MarkdownTextarea = forwardRef<MarkdownTextareaRef, MarkdownTextarea
                         {t('markdownTextarea.selectFromLibrary')}
                       </button>
                     </div>
+                    </>
                   )}
                 </div>
               )}
