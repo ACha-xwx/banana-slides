@@ -96,7 +96,8 @@ import { OutlineCard } from '@/components/outline/OutlineCard';
 import { useProjectStore } from '@/store/useProjectStore';
 import { refineOutline, updateProject, addPage } from '@/api/endpoints';
 import { useImagePaste } from '@/hooks/useImagePaste';
-import { useMaterialSelect } from '@/hooks/useMaterialSelect';
+import { escapeMarkdown } from '@/hooks/useImagePaste';
+import type { Material } from '@/types';
 import { exportProjectToMarkdown, parseMarkdownPages } from '@/utils/projectUtils';
 import type { Page } from '@/types';
 
@@ -198,27 +199,25 @@ export const OutlineEditor: React.FC = () => {
   const [isMaterialSelectorOpen, setIsMaterialSelectorOpen] = useState(false);
   const [activeMaterialTarget, setActiveMaterialTarget] = useState<'input' | 'requirements'>('input');
 
-  const handleInputMaterialSelect = useMaterialSelect({
-    insertAtCursor: (text) => {
-      if (window.innerWidth >= 768) {
-        desktopTextareaRef.current?.insertAtCursor(text);
-      } else {
-        mobileTextareaRef.current?.insertAtCursor(text);
-      }
-    },
-    setContent: setInputText,
-    onError: () => {
-      show({ message: t('outline.uploadingImage') || '插入素材失败', type: 'error' });
+  const handleInputMaterialSelect = useCallback((materials: Material[]) => {
+    const markdown = materials.map(m => {
+      const caption = m.caption || m.original_filename || m.filename || 'image';
+      return `![${escapeMarkdown(caption)}](${m.url})`;
+    }).join('\n');
+    if (window.innerWidth >= 768) {
+      desktopTextareaRef.current?.insertAtCursor(markdown + '\n');
+    } else {
+      mobileTextareaRef.current?.insertAtCursor(markdown + '\n');
     }
-  });
+  }, []);
 
-  const handleReqMaterialSelect = useMaterialSelect({
-    insertAtCursor: (text) => reqTextareaRef.current?.insertAtCursor(text),
-    setContent: setOutlineRequirements,
-    onError: () => {
-      show({ message: t('outline.uploadingImage') || '插入素材失败', type: 'error' });
-    }
-  });
+  const handleReqMaterialSelect = useCallback((materials: Material[]) => {
+    const markdown = materials.map(m => {
+      const caption = m.caption || m.original_filename || m.filename || 'image';
+      return `![${escapeMarkdown(caption)}](${m.url})`;
+    }).join('\n');
+    reqTextareaRef.current?.insertAtCursor(markdown + '\n');
+  }, []);
 
   // 点击外部关闭下拉
   useEffect(() => {

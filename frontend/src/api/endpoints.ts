@@ -801,6 +801,14 @@ export const getMaterialCaption = async (materialId: string): Promise<ApiRespons
 };
 
 /**
+ * Get material by URL and ensure it has a caption
+ */
+export const getMaterialByUrl = async (url: string): Promise<ApiResponse<Material>> => {
+  const response = await apiClient.get<ApiResponse<Material>>(`/api/materials/by-url`, { params: { url } });
+  return response.data;
+};
+
+/**
  * Download selected materials bundled as a zip archive.
  */
 export const downloadMaterialsZip = async (

@@ -10,7 +10,8 @@ import { useProjectStore } from '@/store/useProjectStore';
 import { devLog } from '@/utils/logger';
 import { useTheme } from '@/hooks/useTheme';
 import { useImagePaste } from '@/hooks/useImagePaste';
-import { useMaterialSelect } from '@/hooks/useMaterialSelect';
+import { escapeMarkdown } from '@/hooks/useImagePaste';
+import type { Material } from '@/types';
 import { useT } from '@/hooks/useT';
 import { ASPECT_RATIO_OPTIONS } from '@/config/aspectRatio';
 
@@ -272,13 +273,13 @@ export const Home: React.FC = () => {
     insertAtCursor,
   });
 
-  const handleMaterialSelect = useMaterialSelect({
-    insertAtCursor: (text) => textareaRef.current?.insertAtCursor(text),
-    setContent: setContent,
-    onError: () => {
-      show({ message: '插入素材失败', type: 'error' });
-    }
-  });
+  const handleMaterialSelect = useCallback((materials: Material[]) => {
+    const markdown = materials.map(m => {
+      const caption = m.caption || m.original_filename || m.filename || 'image';
+      return `![${escapeMarkdown(caption)}](${m.url})`;
+    }).join('\n');
+    textareaRef.current?.insertAtCursor(markdown + '\n');
+  }, []);
 
   // 检测粘贴事件，图片走 hook，文档走独立逻辑
   const handlePaste = async (e: React.ClipboardEvent<HTMLElement>) => {

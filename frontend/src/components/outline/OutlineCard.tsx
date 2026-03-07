@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GripVertical, Edit2, Trash2, Check, X } from 'lucide-react';
 import { useT } from '@/hooks/useT';
-import { useImagePaste } from '@/hooks/useImagePaste';
-import { useMaterialSelect } from '@/hooks/useMaterialSelect';
+import { useImagePaste, escapeMarkdown } from '@/hooks/useImagePaste';
 import { Card, useConfirm, Markdown, ShimmerOverlay, MaterialSelector } from '@/components/shared';
 import { MarkdownTextarea, type MarkdownTextareaRef } from '@/components/shared/MarkdownTextarea';
-import type { Page } from '@/types';
+import type { Page, Material } from '@/types';
 
 // OutlineCard 组件自包含翻译
 const outlineCardI18n = {
@@ -78,13 +77,13 @@ export const OutlineCard: React.FC<OutlineCardProps> = ({
     insertAtCursor,
   });
 
-  const handleMaterialSelect = useMaterialSelect({
-    insertAtCursor: (text) => textareaRef.current?.insertAtCursor(text),
-    setContent: setEditPoints,
-    onError: () => {
-      showToast({ message: t('outlineCard.uploadingImage'), type: 'error' });
-    }
-  });
+  const handleMaterialSelect = useCallback((materials: Material[]) => {
+    const markdown = materials.map(m => {
+      const caption = m.caption || m.original_filename || m.filename || 'image';
+      return `![${escapeMarkdown(caption)}](${m.url})`;
+    }).join('\n');
+    textareaRef.current?.insertAtCursor(markdown + '\n');
+  }, []);
 
   // 当 page prop 变化时，同步更新本地编辑状态（如果不在编辑模式）
   useEffect(() => {
