@@ -116,6 +116,7 @@ export const ReferenceFileSelector: React.FC<ReferenceFileSelectorProps> = React
   }, [initialSelectedIds, show]);
 
   const loadFiles = useCallback(async () => {
+    setIsLoading(true);
     try {
       // 根据 filterProjectId 决定查询哪些文件
       // 'all' - 所有文件（全局 + 项目）
@@ -128,14 +129,12 @@ export const ReferenceFileSelector: React.FC<ReferenceFileSelectorProps> = React
         // 合并新旧文件列表，避免丢失正在解析的文件
         setFiles(prev => {
           const fileMap = new Map<string, ReferenceFile>();
-          const serverFiles = response.data!.files; // 已经检查过 response.data?.files
+          const serverFiles = response.data!.files;
 
-          // 先添加服务器返回的文件（这些是权威数据）
           serverFiles.forEach((f: ReferenceFile) => {
             fileMap.set(f.id, f);
           });
 
-          // 然后添加正在解析的文件（可能服务器还没更新状态）
           prev.forEach(f => {
             if (parsingIds.has(f.id) && !fileMap.has(f.id)) {
               fileMap.set(f.id, f);
@@ -151,6 +150,8 @@ export const ReferenceFileSelector: React.FC<ReferenceFileSelectorProps> = React
         message: error?.response?.data?.error?.message || error.message || t('referenceFile.messages.loadFailed'),
         type: 'error',
       });
+    } finally {
+      setIsLoading(false);
     }
   }, [filterProjectId, parsingIds]);
 

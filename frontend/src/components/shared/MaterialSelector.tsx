@@ -114,6 +114,7 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
     m.url;
 
   const loadMaterials = async () => {
+    setIsLoading(true);
     try {
       const targetProjectId = filterProjectId === 'all' ? 'all' : filterProjectId === 'none' ? 'none' : filterProjectId;
       const response = await listMaterials(targetProjectId);
@@ -126,6 +127,8 @@ export const MaterialSelector: React.FC<MaterialSelectorProps> = ({
         message: error?.response?.data?.error?.message || error.message || t('material.messages.loadMaterialFailed'),
         type: 'error',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
