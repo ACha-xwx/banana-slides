@@ -1,14 +1,13 @@
 <div align="center">
-<h1>
-<img width="1100" alt="Image" src="https://github.com/user-attachments/assets/923ba5b8-f392-4ac6-b424-c54d47d2bd28" />
-</h1>
+<img src="https://github.com/user-attachments/assets/81fe6816-44cc-4c61-97c7-f3c099650966" alt="banana-slides">
+
+  
 <a href="https://trendshift.io/repositories/22056" target="_blank">
   <img src="https://trendshift.io/api/badge/repositories/22056" alt="Anionex%2Fbanana-slides | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/>
 </a>
 <br>
 
 <b>一个基于nano banana pro🍌的原生AI PPT生成应用<br></b>
-
 <b> 在几分钟内从想法到演示文稿，无需繁琐排版、口头提出修改，迈向真正的"Vibe PPT" </b>
 
 
