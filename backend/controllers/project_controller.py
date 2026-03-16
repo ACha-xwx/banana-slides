@@ -606,7 +606,7 @@ def generate_descriptions(project_id):
         
         data = request.get_json() or {}
         # 从配置中读取默认并发数，如果请求中提供了则使用请求的值
-        max_workers = data.get('max_workers', get_user_config('MAX_DESCRIPTION_WORKERS', 5))
+        max_workers = data.get('max_workers', get_user_config('MAX_DESCRIPTION_WORKERS', 20))
         language = data.get('language', get_user_config('OUTPUT_LANGUAGE', 'zh'))
         
         # Create task
@@ -712,7 +712,7 @@ def generate_images(project_id):
         outline = _reconstruct_outline_from_pages(pages)
         
         # 从配置中读取默认并发数，如果请求中提供了则使用请求的值
-        max_workers = data.get('max_workers', get_user_config('MAX_IMAGE_WORKERS', 8))
+        max_workers = data.get('max_workers', get_user_config('MAX_IMAGE_WORKERS', 20))
         use_template = data.get('use_template', True)
         language = data.get('language', get_user_config('OUTPUT_LANGUAGE', 'zh'))
         

@@ -65,7 +65,7 @@ class TaskManager:
 
 
 # Global task manager instance
-task_manager = TaskManager(max_workers=4)
+task_manager = TaskManager(max_workers=8)
 
 
 def save_image_with_version(image, project_id: str, page_id: str, file_service,

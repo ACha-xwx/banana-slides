@@ -17,8 +17,8 @@ class Settings(db.Model):
     api_key = db.Column(db.String(500), nullable=True)  # API密钥
     image_resolution = db.Column(db.String(20), nullable=False, default='2K')  # 图像清晰度: 1K, 2K, 4K
     image_aspect_ratio = db.Column(db.String(10), nullable=False, default='16:9')  # 图像比例: 16:9, 4:3, 1:1
-    max_description_workers = db.Column(db.Integer, nullable=False, default=5)  # 描述生成最大工作线程数
-    max_image_workers = db.Column(db.Integer, nullable=False, default=8)  # 图像生成最大工作线程数
+    max_description_workers = db.Column(db.Integer, nullable=False, default=20)  # 描述生成最大工作线程数
+    max_image_workers = db.Column(db.Integer, nullable=False, default=20)  # 图像生成最大工作线程数
 
     # 新增：大模型与 MinerU 相关可视化配置（可在设置页中编辑）
     text_model = db.Column(db.String(100), nullable=True)  # 文本大模型名称（覆盖 Config.TEXT_MODEL）
