@@ -5,6 +5,10 @@
       "destination": "https://api-slides.acha.xx.kg/api/$1"
     },
     {
+      "source": "/files/(.*)",
+      "destination": "https://api-slides.acha.xx.kg/files/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
