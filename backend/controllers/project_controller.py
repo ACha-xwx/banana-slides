@@ -145,6 +145,18 @@ def _smart_merge_pages(project_id, pages_data):
             'title': page_data.get('title'),
             'points': page_data.get('points', [])
         })
+        description_text = page_data.get('description_text')
+        if description_text:
+            desc_content = {
+                'text': description_text,
+                'generated_at': datetime.utcnow().isoformat(),
+            }
+            if page_data.get('extra_fields'):
+                desc_content['extra_fields'] = page_data['extra_fields']
+            page.set_description_content(desc_content)
+            page.status = 'DESCRIPTION_GENERATED'
+        elif not page.description_content:
+            page.status = 'DRAFT'
         pages_list.append(page)
 
     for p in old_pages[len(pages_data):]:
@@ -307,6 +319,10 @@ def update_project(project_id):
             return not_found('Project')
         
         data = request.get_json()
+
+        # Update project_title if provided
+        if 'project_title' in data:
+            project.project_title = data['project_title']
         
         # Update idea_prompt if provided
         if 'idea_prompt' in data:
@@ -346,6 +362,10 @@ def update_project(project_id):
             project.export_extractor_method = data['export_extractor_method']
         if 'export_inpaint_method' in data:
             project.export_inpaint_method = data['export_inpaint_method']
+        if 'export_allow_partial' in data:
+            project.export_allow_partial = data['export_allow_partial']
+        if 'enable_icon_subject_extraction' in data:
+            project.enable_icon_subject_extraction = bool(data['enable_icon_subject_extraction'])
         
         # Update page order if provided
         if 'pages_order' in data:
@@ -560,6 +580,8 @@ def generate_outline_stream(project_id):
                         'title': page_data.get('title', ''),
                         'points': page_data.get('points', []),
                         'part': page_data.get('part'),
+                        'description_text': page_data.get('description_text'),
+                        'extra_fields': page_data.get('extra_fields'),
                     })
 
                 # Handle lock_page_count: pad with blank pages if needed
@@ -1358,6 +1380,7 @@ def create_ppt_renovation_project():
 
         keep_layout = request.form.get('keep_layout', 'false').lower() == 'true'
         template_style = request.form.get('template_style', '').strip() or None
+        language = request.form.get('language', current_app.config.get('OUTPUT_LANGUAGE', 'zh'))
 
         # Create project
         project = Project(
@@ -1376,9 +1399,11 @@ def create_ppt_renovation_project():
         template_dir = project_dir / "template"
         template_dir.mkdir(parents=True, exist_ok=True)
 
-        # Save original file
-        safe_name = secure_filename(file.filename)
-        safe_name = secure_filename(file.filename)
+        # Save original file with a standardized name to avoid encoding issues
+        # (secure_filename strips non-ASCII chars, causing Chinese filenames like
+        # '演示文稿.pdf' to become 'pdf' with no extension, breaking PDF discovery)
+        original_ext = file.filename.rsplit('.', 1)[-1].lower()
+        safe_name = f'original.{original_ext}'
         original_path = template_dir / safe_name
         file.save(str(original_path))
 
@@ -1396,9 +1421,17 @@ def create_ppt_renovation_project():
                     raise ValueError("PDF conversion failed - output file not found")
                 logger.info(f"Converted PPTX to PDF: {pdf_path}")
             except subprocess.TimeoutExpired:
-                raise ValueError("PPTX to PDF conversion timed out")
+                raise ValueError(
+                    "PPTX 转 PDF 超时，请稍后重试或手动转为 PDF 后上传。"
+                    if language == 'zh' else
+                    "PPTX to PDF conversion timed out. Please retry or convert to PDF manually before uploading."
+                )
             except FileNotFoundError:
-                raise ValueError("PPTX conversion requires LibreOffice, which is not installed. Please convert your PPTX to PDF locally before uploading.")
+                raise ValueError(
+                    "PPTX 转换需要安装 LibreOffice，但当前环境未检测到。请在本地将 PPTX 转为 PDF 后再上传。"
+                    if language == 'zh' else
+                    "PPTX conversion requires LibreOffice, which is not installed. Please convert your PPTX to PDF locally before uploading."
+                )
 
         # Convert PDF to page images using PyMuPDF or pdf2image
         pages_dir = project_dir / "pages"
@@ -1525,7 +1558,6 @@ def create_ppt_renovation_project():
             lazyllm_image_caption_source=current_app.config.get('IMAGE_CAPTION_MODEL_SOURCE', 'doubao'),
         )
 
-        language = request.form.get('language', current_app.config.get('OUTPUT_LANGUAGE', 'zh'))
         app = current_app._get_current_object()
 
         # Submit async task

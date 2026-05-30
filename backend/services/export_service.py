@@ -218,6 +218,19 @@ class ExportService:
                 '当前用于图片样式提取的 caption/image_caption 模型不支持图片输入。'
                 '请在设置中改成支持视觉输入的模型，或检查 OpenAI 格式下的 image caption provider / model 配置。'
             )
+        elif (
+            'ssl' in lowered
+            or 'unexpected_eof_while_reading' in lowered
+            or 'eof occurred in violation of protocol' in lowered
+            or 'max retries exceeded' in lowered
+            or 'connection aborted' in lowered
+            or 'connection reset' in lowered
+        ) and ('codex' in lowered or 'chatgpt' in lowered):
+            help_text = (
+                '连接 Codex 服务时网络中断，导致文本样式提取失败。'
+                '请稍后重试；如果反复出现，可重新登录 Codex/OpenAI 后再试。'
+                '若只想先拿到可编辑结果，也可以在「项目设置 -> 导出设置」中开启「返回半成品」。'
+            )
         else:
             help_text = (
                 '文本样式提取依赖视觉模型分析文本截图。请检查 image caption provider、模型名与 API 权限；'
@@ -1155,6 +1168,7 @@ class ExportService:
         progress_callback = None,  # 可选：进度回调函数 (step, message, percent) -> None
         export_extractor_method: str = 'hybrid',  # 组件提取方法: mineru, hybrid
         export_inpaint_method: str = 'hybrid',  # 背景修复方法: generative, baidu, hybrid
+        enable_icon_subject_extraction: bool = False,  # 是否对小尺寸图标走百度智能抠图
         fail_fast: bool = True  # 是否在遇到错误时立即停止（False则收集警告继续）
     ) -> Tuple[Optional[bytes], ExportWarnings]:
         """
@@ -1215,11 +1229,16 @@ class ExportService:
             report_progress("开始", f"准备分析 {total_pages} 页幻灯片...", 0)
             
             # 1. 创建ImageEditabilityService（配置自动从 Flask config 获取，使用项目导出设置）
-            logger.info(f"使用导出设置: extractor={export_extractor_method}, inpaint={export_inpaint_method}")
+            logger.info(
+                f"使用导出设置: extractor={export_extractor_method}, "
+                f"inpaint={export_inpaint_method}, "
+                f"icon_subject_extraction={enable_icon_subject_extraction}"
+            )
             config = ServiceConfig.from_defaults(
                 max_depth=max_depth,
                 extractor_method=export_extractor_method,
-                inpaint_method=export_inpaint_method
+                inpaint_method=export_inpaint_method,
+                enable_icon_subject_extraction=enable_icon_subject_extraction,
             )
             editability_service = ImageEditabilityService(config)
             

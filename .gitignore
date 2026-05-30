@@ -38,6 +38,8 @@
 !skills/**/*.md
 # !docs/**/*.md
 !docs/specs/cli-spec.md
+!docs/superpowers/specs/*.md
+!docs/superpowers/plans/*.md
 !.github/**/*.md
 *.pyc
 .env
@@ -60,3 +62,6 @@ _local_backup/
 !CLA.md 
 !CONTRIBUTING.md
 .venv
+
+# 本地 ML 模型（RMBG 等）
+/models/

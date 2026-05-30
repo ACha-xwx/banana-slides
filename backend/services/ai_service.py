@@ -269,10 +269,14 @@ class AIService:
             )
         else:
             raise ValueError("caption_provider 不支持图片输入")
-        
+
         # 清理响应文本：移除markdown代码块标记和多余空白
-        cleaned_text = response_text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-        
+        cleaned_text = (response_text or "").strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+
+        if not cleaned_text:
+            logger.warning("视觉模型返回空响应（带图片），将重试")
+            raise ValueError("视觉模型返回空响应")
+
         try:
             return json.loads(cleaned_text)
         except json.JSONDecodeError as e:
@@ -343,8 +347,9 @@ class AIService:
 
         Format:
           # Part Name        → sets current part
-          ## Page Title       → starts a new page
-          - Point text        → adds a bullet point to current page
+          ## Page Title      → starts a new page
+          - Point text       → adds a bullet point to current page
+          Plain sentence     → also treated as a point for sentence-style outlines
 
         Returns list of dicts: [{"title": ..., "points": [...], "part": ...}, ...]
         """
@@ -372,6 +377,10 @@ class AIService:
                     current_page['part'] = current_part
             elif stripped.startswith('- ') and current_page is not None:
                 current_page['points'].append(stripped[2:].strip())
+            elif current_page is not None:
+                # Backward/forward compatible: support sentence-style outline lines
+                # generated under each title (without "- " prefix).
+                current_page['points'].append(stripped)
 
         # Flush last page
         if current_page:
@@ -387,10 +396,17 @@ class AIService:
         """
         creation_type = project_context.creation_type or 'idea'
 
+        extra_field_names = self._get_extra_field_names() if creation_type == 'descriptions' else []
+        field_pattern = self._build_extra_field_pattern(extra_field_names)
+
         if creation_type == 'outline':
             prompt = get_outline_parsing_prompt_markdown(project_context, language)
         elif creation_type == 'descriptions':
-            prompt = get_description_to_outline_prompt_markdown(project_context, language)
+            prompt = get_description_to_outline_prompt_markdown(
+                project_context,
+                language,
+                extra_fields=extra_field_names,
+            )
         else:
             prompt = get_outline_generation_prompt_markdown(project_context, language)
 
@@ -398,7 +414,118 @@ class AIService:
         buffer = ""
         current_part = None
         current_page = None
+        current_mode = 'points'
+        current_field = None
         stream_complete = False
+
+        def _new_page(title: str) -> Dict:
+            page = {
+                'title': title,
+                'points': [],
+                'description_lines': [],
+                'extra_fields': {},
+            }
+            if current_part:
+                page['part'] = current_part
+            return page
+
+        def _finalize_page(page: Optional[Dict]) -> Optional[Dict]:
+            if not page:
+                return None
+            result = {
+                'title': page.get('title', ''),
+                'points': page.get('points', []),
+            }
+            if page.get('part'):
+                result['part'] = page['part']
+            description_text = "\n".join(page.get('description_lines', [])).strip()
+            if description_text:
+                result['description_text'] = description_text
+            if page.get('extra_fields'):
+                result['extra_fields'] = dict(page['extra_fields'])
+            return result
+
+        def _process_line(line: str, stripped: str):
+            nonlocal current_part, current_page, current_mode, current_field, stream_complete
+
+            if stripped == '<!-- END -->':
+                stream_complete = True
+                return None
+
+            if stripped == '<!-- PAGE_END -->':
+                finished = _finalize_page(current_page)
+                current_page = None
+                current_mode = 'points'
+                current_field = None
+                return finished
+
+            if not stripped:
+                if current_page is not None and current_mode == 'description':
+                    if current_field:
+                        current_page['extra_fields'][current_field] = (
+                            current_page['extra_fields'].get(current_field, '') + "\n"
+                        )
+                    else:
+                        current_page['description_lines'].append('')
+                return None
+
+            if stripped.startswith('# ') and not stripped.startswith('## '):
+                current_part = stripped[2:].strip()
+                return None
+
+            if stripped.startswith('## '):
+                finished = _finalize_page(current_page)
+                current_page = _new_page(stripped[3:].strip())
+                current_mode = 'points'
+                current_field = None
+                return finished
+
+            if current_page is None:
+                return None
+
+            marker = stripped.strip('*_').strip().lower().replace('：', ':')
+            if (
+                marker == '<!-- outline_points -->'
+                or marker in ('大纲要点:', 'outline points:')
+            ):
+                current_mode = 'points'
+                current_field = None
+                return None
+
+            if (
+                marker == '<!-- page_description -->'
+                or marker in ('页面描述:', 'page description:')
+            ):
+                current_mode = 'description'
+                current_field = None
+                return None
+
+            if current_mode == 'description':
+                if field_pattern:
+                    field_match = field_pattern.match(stripped)
+                    if field_match:
+                        current_field = field_match.group(1)
+                        value = field_match.group(2).strip()
+                        if value:
+                            current_page['extra_fields'][current_field] = value
+                        return None
+
+                if current_field:
+                    current_page['extra_fields'][current_field] = (
+                        current_page['extra_fields'].get(current_field, '') + "\n" + stripped
+                    ).strip()
+                    return None
+
+                current_page['description_lines'].append(line.rstrip())
+                return None
+
+            if stripped.startswith('- '):
+                current_page['points'].append(stripped[2:].strip())
+            else:
+                # Backward/forward compatible: support sentence-style outline lines
+                # generated under each title (without "- " prefix).
+                current_page['points'].append(stripped)
+            return None
 
         for chunk in self.text_provider.generate_text_stream(prompt, thinking_budget=actual_budget):
             buffer += chunk
@@ -406,58 +533,21 @@ class AIService:
             # Process complete lines from buffer
             while '\n' in buffer:
                 line, buffer = buffer.split('\n', 1)
-                stripped = line.strip()
+                finished_page = _process_line(line, line.strip())
+                if finished_page:
+                    yield finished_page
 
-                if not stripped:
-                    continue
-
-                if stripped == '<!-- END -->':
-                    stream_complete = True
-                    continue
-
-                if stripped.startswith('# ') and not stripped.startswith('## '):
-                    current_part = stripped[2:].strip()
-                elif stripped.startswith('## '):
-                    # New page detected — yield previous page
-                    if current_page:
-                        yield current_page
-                    current_page = {
-                        'title': stripped[3:].strip(),
-                        'points': [],
-                    }
-                    if current_part:
-                        current_page['part'] = current_part
-                elif stripped.startswith('- ') and current_page is not None:
-                    current_page['points'].append(stripped[2:].strip())
-
-        # Process remaining buffer (same logic as main loop)
+        # Process remaining buffer
         if buffer.strip():
-            buffer += '\n'
-            while '\n' in buffer:
-                line, buffer = buffer.split('\n', 1)
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                if stripped == '<!-- END -->':
-                    stream_complete = True
-                    continue
-                if stripped.startswith('# ') and not stripped.startswith('## '):
-                    current_part = stripped[2:].strip()
-                elif stripped.startswith('## '):
-                    if current_page:
-                        yield current_page
-                    current_page = {
-                        'title': stripped[3:].strip(),
-                        'points': [],
-                    }
-                    if current_part:
-                        current_page['part'] = current_part
-                elif stripped.startswith('- ') and current_page is not None:
-                    current_page['points'].append(stripped[2:].strip())
+            for line in buffer.split('\n'):
+                finished_page = _process_line(line, line.strip())
+                if finished_page:
+                    yield finished_page
 
         # Yield last page
-        if current_page:
-            yield current_page
+        finished_page = _finalize_page(current_page)
+        if finished_page:
+            yield finished_page
 
         # Yield completion sentinel
         yield {'__stream_complete__': stream_complete}
@@ -812,37 +902,45 @@ class AIService:
 
             # 构建参考图片列表
             ref_images = []
-            
+            # 只关闭此方法打开的图片，不关闭调用方传入的 PIL Image 对象
+            owned_images = []
+
             # 添加主参考图片（如果提供了路径）
             if ref_image_path:
                 if not os.path.exists(ref_image_path):
                     raise FileNotFoundError(f"Reference image not found: {ref_image_path}")
                 main_ref_image = Image.open(ref_image_path)
                 ref_images.append(main_ref_image)
-            
+                owned_images.append(main_ref_image)
+
             # 添加额外的参考图片
             if additional_ref_images:
                 for ref_img in additional_ref_images:
                     if isinstance(ref_img, Image.Image):
-                        # 已经是 PIL Image 对象
+                        # 已经是 PIL Image 对象，由调用方负责关闭
                         ref_images.append(ref_img)
                     elif isinstance(ref_img, str):
                         # 可能是本地路径或 URL
                         if os.path.exists(ref_img):
                             # 本地路径
-                            ref_images.append(Image.open(ref_img))
+                            opened = Image.open(ref_img)
+                            ref_images.append(opened)
+                            owned_images.append(opened)
                         elif ref_img.startswith('http://') or ref_img.startswith('https://'):
                             # URL，需要下载
                             downloaded_img = self.download_image_from_url(ref_img)
                             if downloaded_img:
                                 ref_images.append(downloaded_img)
+                                owned_images.append(downloaded_img)
                             else:
                                 logger.warning(f"Failed to download image from URL: {ref_img}, skipping...")
                         elif ref_img.startswith('/files/mineru/'):
                             # MinerU 本地文件路径，需要转换为文件系统路径（支持前缀匹配）
                             local_path = self._convert_mineru_path_to_local(ref_img)
                             if local_path and os.path.exists(local_path):
-                                ref_images.append(Image.open(local_path))
+                                opened = Image.open(local_path)
+                                ref_images.append(opened)
+                                owned_images.append(opened)
                                 logger.debug(f"Loaded MinerU image from local path: {local_path}")
                             else:
                                 logger.warning(f"MinerU image file not found (with prefix matching): {ref_img}, skipping...")
@@ -854,27 +952,36 @@ class AIService:
                             if not local_path.startswith(os.path.abspath(upload_folder)):
                                 logger.warning(f"Path traversal attempt blocked: {ref_img}, skipping...")
                             elif os.path.exists(local_path):
-                                ref_images.append(Image.open(local_path))
+                                opened = Image.open(local_path)
+                                ref_images.append(opened)
+                                owned_images.append(opened)
                                 logger.debug(f"Loaded image from local path: {local_path}")
                             else:
                                 logger.warning(f"Local file not found: {local_path} (from {ref_img}), skipping...")
                         else:
                             logger.warning(f"Invalid image reference: {ref_img}, skipping...")
-            
+
             logger.debug(f"Calling image provider for generation with {len(ref_images)} reference images...")
             logger.debug(f"Enable image reasoning/thinking: {self.enable_image_reasoning}, budget: {self._get_image_thinking_budget()}")
-            
-            # 使用 image_provider 生成图片
-            # 根据 enable_image_reasoning 配置控制图像生成的思考模式
-            return self.image_provider.generate_image(
-                prompt=prompt,
-                ref_images=ref_images if ref_images else None,
-                aspect_ratio=aspect_ratio,
-                resolution=resolution,
-                enable_thinking=self.enable_image_reasoning,
-                thinking_budget=self._get_image_thinking_budget()
-            )
-            
+
+            try:
+                # 使用 image_provider 生成图片
+                # 根据 enable_image_reasoning 配置控制图像生成的思考模式
+                return self.image_provider.generate_image(
+                    prompt=prompt,
+                    ref_images=ref_images if ref_images else None,
+                    aspect_ratio=aspect_ratio,
+                    resolution=resolution,
+                    enable_thinking=self.enable_image_reasoning,
+                    thinking_budget=self._get_image_thinking_budget()
+                )
+            finally:
+                for img in owned_images:
+                    try:
+                        img.close()
+                    except Exception:
+                        pass
+
         except Exception as e:
             error_detail = f"Error generating image: {type(e).__name__}: {str(e)}"
             logger.error(error_detail, exc_info=True)
@@ -1055,4 +1162,3 @@ class AIService:
     def extract_style_description(self, image_path: str) -> str:
         """从图片中提取风格描述"""
         return self._generate_text_from_image(get_style_extraction_prompt(), image_path)
-
